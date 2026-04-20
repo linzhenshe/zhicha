@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智查</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #2DC98A;
+    --green-light: #E8F9F2;
+    --green-mid: #A8EDD1;
+    --green-dark: #1aab72;
+    --bg: #F5F6F8;
+    --white: #ffffff;
+    --text: #1a1a1a;
+    --shadow: 0 2px 12px rgba(45,201,138,0.08);
+    --radius: 18px;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--bg);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: var(--white);
+    border-bottom: 1px solid #eee;
+  }
+
+  .header svg {
+    width: 26px; height: 26px;
+    stroke: var(--green); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .header h1 {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: 2px; color: var(--text);
+  }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .bubble-wrap {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .bubble-wrap.bot  { justify-content: flex-start; }
+  .bubble-wrap.user { justify-content: flex-end; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px; color: white; font-weight: 700;
+  }
+
+  .bubble {
+    max-width: 80%;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    font-size: 15px;
+    line-height: 1.7;
+    box-shadow: var(--shadow);
+  }
+
+  .bubble-wrap.bot .bubble {
+    background: var(--white);
+    border-bottom-left-radius: 4px;
+  }
+
+  .bubble-wrap.user .bubble {
+    background: var(--green);
+    border-bottom-right-radius: 4px;
+    color: white;
+  }
+
+  .status-tags {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
+    font-size: 12px; color: var(--green-dark); font-weight: 500;
+  }
+
+  .tag svg {
+    width: 13px; height: 13px;
+    stroke: var(--green-dark); fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .bubble-text strong { font-weight: 700; }
+
+  .typing-wrap {
+    display: flex; align-items: flex-end; gap: 8px;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  .typing-bubble {
+    background: var(--white);
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    border-bottom-left-radius: 4px;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green-mid);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); background: var(--green-mid); }
+    40% { transform: translateY(-6px); background: var(--green); }
+  }
+
+  .input-area {
+    padding: 12px 16px 16px;
+    background: var(--white);
+    border-top: 1px solid #eee;
+  }
+
+  .input-box {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 12px 16px;
+    position: relative;
+  }
+
+  .input-text {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.5;
+    padding-right: 52px;
+    min-height: 22px;
+    word-break: break-all;
+    font-family: inherit;
+  }
+
+  .send-btn {
+    position: absolute; right: 10px; bottom: 10px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--green);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .send-btn:hover:not(:disabled) { background: var(--green-dark); }
+  .send-btn:active:not(:disabled) { transform: scale(0.93); }
+  .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  .send-btn svg { width: 18px; height: 18px; fill: white; }
+
+  .feature-tags {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+
+  .feature-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--green);
+    font-size: 13px; color: white; font-weight: 500;
+  }
+
+  .feature-tag svg {
+    width: 14px; height: 14px;
+    stroke: white; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* 完成提示栏 */
+  .completion-bar {
+    display: none;
+    padding: 16px 20px;
+    background: var(--green-light);
+    border-top: 1px solid var(--green-mid);
+    text-align: center;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .completion-bar.visible { display: block; }
+
+  .completion-bar p {
+    font-size: 14px; color: #444;
+    line-height: 1.8; margin-bottom: 12px;
+  }
+
+  .completion-bar p strong { color: var(--green-dark); }
+
+  .done-btn {
+    padding: 10px 32px;
+    background: var(--green);
+    color: white; border: none;
+    border-radius: 30px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 1px;
+  }
+
+  .done-btn:hover  { background: var(--green-dark); }
+  .done-btn:active { transform: scale(0.96); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <h1>智查</h1>
+  </div>
+
+  <div class="chat-area" id="chatArea">
+    <div class="bubble-wrap bot">
+      <div class="avatar">查</div>
+      <div class="bubble">
+        <div class="bubble-text">欢迎使用智查，我将深度思考信息，为您还原事实真相。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area" id="inputArea">
+    <div class="input-box">
+      <div class="input-text" id="inputText"></div>
+      <button class="send-btn" id="sendBtn" disabled>
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+      </button>
+    </div>
+    <div class="feature-tags">
+      <span class="feature-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="2"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+        </svg>
+        深度思考
+      </span>
+    </div>
+  </div>
+
+  <!-- 第二条回复显示7秒后出现 -->
+  <div class="completion-bar" id="completionBar">
+    <p>如果您已经完成核查任务，请点击<strong>「我已完成」</strong>回到问卷，完成后续问卷。</p>
+    <button class="done-btn" onclick="handleContinue()">我已完成</button>
+  </div>
+
+</div>
+
+<script>
+  const MESSAGES = [
+    {
+      userMsg: '"维生素A可以预防麻疹"\n请帮我核实一下这条信息是正确还是错误',
+      botReply: {
+        tags: ['deepThink'],
+        text: '经过核查，<strong>这条信息为错误信息</strong>。维生素A不能预防麻疹，也不能治愈麻疹。感染麻疹会增加残疾和死亡的风险，预防麻疹及其相关并发症的最有效方法是接种疫苗。'
+      }
+    },
+    {
+      userMsg: '"银杏果可以降低血脂"\n请帮我核实一下这条信息是正确还是错误',
+      botReply: {
+        tags: ['deepThink'],
+        text: '经过核查，<strong>这条信息为错误信息</strong>。目前没有充分的临床证据证明银杏果具有降低血脂的功效。银杏果中含有银杏毒素等有害成分，过量食用反而可能导致中毒。如需调节血脂，建议在医生指导下进行正规治疗。'
+      }
+    }
+  ];
+
+  let step = 0;
+  let busy = false;
+
+  const chatArea      = document.getElementById('chatArea');
+  const inputArea     = document.getElementById('inputArea');
+  const inputText     = document.getElementById('inputText');
+  const sendBtn       = document.getElementById('sendBtn');
+  const completionBar = document.getElementById('completionBar');
+
+  function init() {
+    loadStep(0);
+  }
+
+  function loadStep(index) {
+    step = index;
+    busy = false;
+    inputText.innerHTML = escapeHtml(MESSAGES[index].userMsg);
+    sendBtn.disabled = false;
+  }
+
+  sendBtn.addEventListener('click', function () {
+    if (busy) return;
+    busy = true;
+    sendBtn.disabled = true;
+
+    appendUserBubble(MESSAGES[step].userMsg);
+    inputText.innerHTML = '';
+
+    setTimeout(showTyping, 300);
+
+    setTimeout(function () {
+      removeTyping();
+      appendBotBubble(MESSAGES[step].botReply);
+
+      setTimeout(function () {
+        if (step === 0) {
+          loadStep(1);
+        } else {
+          // 第二条完成：隐藏输入框，显示完成提示栏
+          inputArea.classList.add('hidden');
+          completionBar.classList.add('visible');
+          scrollToBottom();
+        }
+      }, 7000);
+
+    }, 3000);
+  });
+
+  function appendUserBubble(text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap user';
+    wrap.innerHTML = `<div class="bubble"><div class="bubble-text">${escapeHtml(text)}</div></div>`;
+    chatArea.appendChild(wrap);
+    scrollToBottom();
+  }
+
+  function appendBotBubble(reply) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap bot';
+
+    let tagsHtml = '';
+    if (reply.tags && reply.tags.length) {
+      let items = '';
+      if (reply.tags.includes('webSearch')) {
+        items += `<span class="tag">
+          <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          已搜索阅读相关网页
+        </span>`;
+      }
+      if (reply.tags.includes('deepThink')) {
+        items += `<span class="tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+          </svg>
+          已完成深度思考
+        </span>`;
+      }
+      tagsHtml = `<div class="status-tags">${items}</div>`;
+    }
+
+    wrap.innerHTML = `
+      <div class="avatar">查</div>
+      <div class="bubble">${tagsHtml}<div class="bubble-text">${reply.text}</div></div>`;
+    chatArea.appendChild(wrap);
+    scrollToBottom();
+  }
+
+  let typingEl = null;
+  function showTyping() {
+    typingEl = document.createElement('div');
+    typingEl.className = 'typing-wrap';
+    typingEl.innerHTML = `
+      <div class="avatar">查</div>
+      <div class="typing-bubble">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>`;
+    chatArea.appendChild(typingEl);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    if (typingEl) { typingEl.remove(); typingEl = null; }
+  }
+
+  function scrollToBottom() {
+    setTimeout(function () { chatArea.scrollTop = chatArea.scrollHeight; }, 50);
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+  }
+
+  // ─────────────────────────────────────────────
+  // 【见数平台跳转接口 — 请根据实际情况替换】
+  // 常见方式：
+  //   parent.postMessage('next', '*');
+  //   window.parent.next();
+  //   document.getElementById('hidden-next-btn').click();
+  // ─────────────────────────────────────────────
+  function handleContinue() {
+    try {
+      parent.postMessage({ action: 'next' }, '*');
+    } catch (e) {
+      console.log('请根据见数平台接口实现跳转');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
