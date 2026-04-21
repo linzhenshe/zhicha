@@ -132,6 +132,16 @@
 
   .bubble-text strong { font-weight: 700; }
 
+  /* 逐字打字时的闪烁光标 */
+  .typing-cursor::after {
+    content: '▋';
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    color: var(--green);
+    margin-left: 2px;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
   .typing-wrap {
     display: flex; align-items: flex-end; gap: 8px;
     animation: fadeUp 0.35s ease both;
@@ -220,7 +230,7 @@
   /* 完成提示栏 */
   .completion-bar {
     display: none;
-    padding: 16px 20px;
+    padding: 24px 20px;
     background: var(--green-light);
     border-top: 1px solid var(--green-mid);
     text-align: center;
@@ -230,26 +240,9 @@
   .completion-bar.visible { display: block; }
 
   .completion-bar p {
-    font-size: 14px; color: #444;
+    font-size: 15px; color: #333;
     line-height: 1.8; margin-bottom: 12px;
   }
-
-  .completion-bar p strong { color: var(--green-dark); }
-
-  .done-btn {
-    padding: 10px 32px;
-    background: var(--green);
-    color: white; border: none;
-    border-radius: 30px;
-    font-size: 15px; font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.2s, transform 0.1s;
-    letter-spacing: 1px;
-  }
-
-  .done-btn:hover  { background: var(--green-dark); }
-  .done-btn:active { transform: scale(0.96); }
 
   .hidden { display: none !important; }
 </style>
@@ -266,7 +259,7 @@
     <div class="bubble-wrap bot">
       <div class="avatar">查</div>
       <div class="bubble">
-        <div class="bubble-text">欢迎使用智查，我将认真思考信息，为您还原事实真相。</div>
+        <div class="bubble-text">欢迎使用智查，我将联网检索并深度思考信息，为您还原事实真相。</div>
       </div>
     </div>
   </div>
@@ -278,12 +271,27 @@
         <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
       </button>
     </div>
+    <div class="feature-tags">
+      <span class="feature-tag">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        联网搜索
+      </span>
+      <span class="feature-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="2"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+        </svg>
+        深度思考
+      </span>
+    </div>
   </div>
 
-  <!-- 第二条回复显示7秒后出现 -->
   <div class="completion-bar" id="completionBar">
-    <p>如果您已经完成核查任务，请点击<strong>「我已完成」</strong>回到问卷，完成后续问卷。</p>
-    <button class="done-btn" onclick="handleContinue()">我已完成</button>
+    <p style="margin-bottom: 10px;">🎉 核查已结束，您的专属验证码是：</p>
+    <div style="font-size: 26px; font-weight: bold; color: var(--green-dark); letter-spacing: 5px; margin-bottom: 15px; background: var(--white); padding: 12px 35px; border-radius: 8px; border: 2px dashed var(--green-dark); display: inline-block; user-select: all;">6789</div>
+    <p style="color: #666; font-size: 14px;">请牢记上方验证码，在后续问卷中填写并继续作答。</p>
   </div>
 
 </div>
@@ -293,14 +301,14 @@
     {
       userMsg: '"维生素A可以预防麻疹"\n请帮我核实一下这条信息是正确还是错误',
       botReply: {
-        tags: [],
+        tags: ['webSearch', 'deepThink'],
         text: '经过核查，<strong>这条信息为错误信息</strong>。维生素A不能预防麻疹，也不能治愈麻疹。感染麻疹会增加残疾和死亡的风险，预防麻疹及其相关并发症的最有效方法是接种疫苗。'
       }
     },
     {
       userMsg: '"银杏果可以降低血脂"\n请帮我核实一下这条信息是正确还是错误',
       botReply: {
-        tags: [],
+        tags: ['webSearch', 'deepThink'],
         text: '经过核查，<strong>这条信息为错误信息</strong>。目前没有充分的临床证据证明银杏果具有降低血脂的功效。银杏果中含有银杏毒素等有害成分，过量食用反而可能导致中毒。如需调节血脂，建议在医生指导下进行正规治疗。'
       }
     }
@@ -336,22 +344,24 @@
 
     setTimeout(showTyping, 300);
 
+    // 1. 等待回复时间：严格控制为 4 秒 (4000ms)
     setTimeout(function () {
       removeTyping();
-      appendBotBubble(MESSAGES[step].botReply);
+      
+      appendBotBubbleWithTypewriter(MESSAGES[step].botReply, function() {
+        // 2. 固定阅读停留时间：严格控制为 10 秒 (10000ms)
+        setTimeout(function () {
+          if (step === 0) {
+            loadStep(1); 
+          } else {
+            inputArea.classList.add('hidden');
+            completionBar.classList.add('visible');
+            scrollToBottom();
+          }
+        }, 10000); 
+      });
 
-      setTimeout(function () {
-        if (step === 0) {
-          loadStep(1);
-        } else {
-          // 第二条完成：隐藏输入框，显示完成提示栏
-          inputArea.classList.add('hidden');
-          completionBar.classList.add('visible');
-          scrollToBottom();
-        }
-      }, 7000);
-
-    }, 3000);
+    }, 4000); 
   });
 
   function appendUserBubble(text) {
@@ -362,7 +372,7 @@
     scrollToBottom();
   }
 
-  function appendBotBubble(reply) {
+  function appendBotBubbleWithTypewriter(reply, onComplete) {
     const wrap = document.createElement('div');
     wrap.className = 'bubble-wrap bot';
 
@@ -391,9 +401,45 @@
 
     wrap.innerHTML = `
       <div class="avatar">查</div>
-      <div class="bubble">${tagsHtml}<div class="bubble-text">${reply.text}</div></div>`;
+      <div class="bubble">${tagsHtml}<div class="bubble-text typing-cursor"></div></div>`;
     chatArea.appendChild(wrap);
     scrollToBottom();
+
+    const textContainer = wrap.querySelector('.bubble-text');
+    
+    typeHTMLString(textContainer, reply.text, 30, function() {
+      textContainer.classList.remove('typing-cursor');
+      if(onComplete) onComplete();
+    });
+  }
+
+  function typeHTMLString(element, htmlString, speed, callback) {
+    let i = 0;
+    let isTag = false;
+    let textBuffer = '';
+
+    function typeChar() {
+      if (i < htmlString.length) {
+        let char = htmlString.charAt(i);
+        textBuffer += char;
+        
+        if (char === '<') isTag = true;
+        if (char === '>') isTag = false;
+
+        element.innerHTML = textBuffer;
+        i++;
+
+        if (isTag) {
+          typeChar();
+        } else {
+          setTimeout(typeChar, speed);
+          scrollToBottom();
+        }
+      } else {
+        if (callback) callback();
+      }
+    }
+    typeChar();
   }
 
   let typingEl = null;
@@ -423,21 +469,6 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/\n/g, '<br>');
-  }
-
-  // ─────────────────────────────────────────────
-  // 【见数平台跳转接口 — 请根据实际情况替换】
-  // 常见方式：
-  //   parent.postMessage('next', '*');
-  //   window.parent.next();
-  //   document.getElementById('hidden-next-btn').click();
-  // ─────────────────────────────────────────────
-  function handleContinue() {
-    try {
-      parent.postMessage({ action: 'next' }, '*');
-    } catch (e) {
-      console.log('请根据见数平台接口实现跳转');
-    }
   }
 
   init();
