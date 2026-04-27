@@ -299,31 +299,46 @@
     margin-bottom: 0;
   }
 
-  @media (max-width: 1100px) {
-    .task-tip {
-      right: 16px;
-      width: 280px;
-    }
-  }
+  /* === 请用这段代码替换掉原来的 @media 部分 === */
 
-  @media (max-width: 760px) {
+  /* 当屏幕宽度小于 1150px 时，将提示框吸顶显示，防止左右重叠 */
+  @media (max-width: 1150px) {
     #app {
-      padding-top: 178px;
+      padding-top: 175px; /* 在顶部为提示框留出专属空间，确保不遮挡聊天 */
     }
-
     .task-tip {
-      left: 12px;
-      right: 12px;
-      top: 12px;
-      width: auto;
-      padding: 12px 14px;
-      border-radius: 14px;
+      left: 50%;
+      transform: translateX(-50%); /* 完美居中对齐 */
+      right: auto;
+      top: 16px;
+      width: 92%;
+      max-width: 680px; /* 宽度不超过聊天框 */
+      padding: 14px 18px;
     }
-
     .task-tip-title {
       font-size: 15px;
       margin-bottom: 6px;
     }
+    .task-tip p {
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 4px;
+    }
+  }
+
+  /* 针对较小的手机屏幕进一步微调高度 */
+  @media (max-width: 500px) {
+    #app {
+      padding-top: 195px; /* 手机上文字折行会变多，顶部留白稍微加大 */
+    }
+    .task-tip {
+      width: 95%;
+      padding: 12px 14px;
+    }
+    .task-tip p {
+      font-size: 12px;
+    }
+  }
 
     .task-tip p {
       font-size: 13px;
