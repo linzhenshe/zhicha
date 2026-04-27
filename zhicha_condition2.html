@@ -132,7 +132,6 @@
 
   .bubble-text strong { font-weight: 700; }
 
-  /* 逐字打字时的闪烁光标 */
   .typing-cursor::after {
     content: '▋';
     display: inline-block;
@@ -155,6 +154,13 @@
     box-shadow: var(--shadow);
     display: flex; align-items: center; gap: 5px;
   }
+  
+  .typing-text {
+    font-size: 14px;
+    color: var(--green-dark);
+    font-weight: 600;
+    margin-right: 6px;
+  }
 
   .dot {
     width: 7px; height: 7px;
@@ -162,8 +168,8 @@
     background: var(--green-mid);
     animation: bounce 1.2s infinite ease-in-out;
   }
-  .dot:nth-child(2) { animation-delay: 0.2s; }
-  .dot:nth-child(3) { animation-delay: 0.4s; }
+  .dot:nth-child(3) { animation-delay: 0.2s; }
+  .dot:nth-child(4) { animation-delay: 0.4s; }
 
   @keyframes bounce {
     0%, 80%, 100% { transform: translateY(0); background: var(--green-mid); }
@@ -194,7 +200,9 @@
   }
 
   .send-btn {
-    position: absolute; right: 10px; bottom: 10px;
+    position: absolute; 
+    right: 8px; /* 稍微靠右一点点，配合4px的bottom更好看 */
+    bottom: 4px; /* 原来是 10px，改为 4px 完美解决单行溢出 */
     width: 38px; height: 38px;
     border-radius: 50%;
     background: var(--green);
@@ -214,20 +222,34 @@
   }
 
   .feature-tag {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
     border-radius: 20px;
-    background: var(--green);
-    font-size: 13px; color: white; font-weight: 500;
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
+    font-size: 13px; color: var(--green-dark); font-weight: 600;
   }
 
   .feature-tag svg {
-    width: 14px; height: 14px;
-    stroke: white; fill: none;
+    width: 15px; height: 15px;
+    stroke: var(--green-dark); fill: none;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
 
-  /* 完成提示栏 */
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background-color: var(--green);
+    animation: pulse 1.5s infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(45, 201, 138, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(45, 201, 138, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(45, 201, 138, 0); }
+  }
+
   .completion-bar {
     display: none;
     padding: 24px 20px;
@@ -245,9 +267,83 @@
   }
 
   .hidden { display: none !important; }
+
+  .task-tip {
+    position: fixed;
+    right: 24px;
+    top: 86px;
+    width: 300px;
+    padding: 16px 18px;
+    background: var(--white);
+    border: 1px solid var(--green-mid);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(45,201,138,0.16);
+    z-index: 1000;
+  }
+
+  .task-tip-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+
+  .task-tip p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .task-tip p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 1100px) {
+    .task-tip {
+      right: 16px;
+      width: 280px;
+    }
+  }
+
+  @media (max-width: 760px) {
+    #app {
+      padding-top: 178px;
+    }
+
+    .task-tip {
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      width: auto;
+      padding: 12px 14px;
+      border-radius: 14px;
+    }
+
+    .task-tip-title {
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .task-tip p {
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 5px;
+    }
+  }
+
 </style>
 </head>
 <body>
+
+  <div class="task-tip" aria-label="任务提示">
+    <div class="task-tip-title">任务提示</div>
+    <p>① 点击发送键向智查提问，但请不要输入与核查无关的内容。</p>
+    <p>② 仔细阅读智查的回复。</p>
+    <p>③ 完成对两则信息的核查后，请记住智查最后给出的专属验证代码。</p>
+    <p>④ 点击“下一页”，并在后续问卷中填写验证代码，以确保您已完成互动。</p>
+  </div>
+
 <div id="app">
 
   <div class="header">
@@ -259,7 +355,7 @@
     <div class="bubble-wrap bot">
       <div class="avatar">查</div>
       <div class="bubble">
-        <div class="bubble-text">欢迎使用智查，我将联网搜索信息，为您还原事实真相。</div>
+        <div class="bubble-text">欢迎使用智查！智查具备联网搜索功能，将为您还原事实真相。</div>
       </div>
     </div>
   </div>
@@ -290,17 +386,17 @@
 <script>
   const MESSAGES = [
     {
-      userMsg: '"维生素A可以预防麻疹"\n请帮我核实一下这条信息是正确还是错误',
+      userMsg: '"维生素A可以预防麻疹"\n这条信息是正确还是错误',
       botReply: {
         tags: ['webSearch'],
-        text: '经过核查，<strong>这条信息为错误信息</strong>。维生素A不能预防麻疹，也不能治愈麻疹。感染麻疹会增加残疾和死亡的风险，预防麻疹及其相关并发症的最有效方法是接种疫苗。'
+        text: '<strong>这条信息为错误信息</strong>。维生素A不能预防麻疹，也不能治愈麻疹。感染麻疹会增加残疾和死亡的风险，预防麻疹及其相关并发症的最有效方法是接种疫苗。'
       }
     },
     {
-      userMsg: '"银杏果可以降低血脂"\n请帮我核实一下这条信息是正确还是错误',
+      userMsg: '"银杏果可以降低血脂"\n这条信息是正确还是错误',
       botReply: {
         tags: ['webSearch'],
-        text: '经过核查，<strong>这条信息为错误信息</strong>。目前没有充分的临床证据证明银杏果具有降低血脂的功效。银杏果中含有银杏毒素等有害成分，过量食用反而可能导致中毒。如需调节血脂，建议在医生指导下进行正规治疗。'
+        text: '<strong>这条信息为错误信息</strong>。目前没有充分的临床证据证明银杏果具有降低血脂的功效。银杏果中含有银杏毒素等有害成分，过量食用反而可能导致中毒。如需调节血脂，建议在医生指导下进行正规治疗。'
       }
     }
   ];
@@ -335,12 +431,10 @@
 
     setTimeout(showTyping, 300);
 
-    // 1. 等待回复时间：严格控制为 4 秒 (4000ms)
     setTimeout(function () {
       removeTyping();
       
       appendBotBubbleWithTypewriter(MESSAGES[step].botReply, function() {
-        // 2. 固定阅读停留时间：严格控制为 10 秒 (10000ms)
         setTimeout(function () {
           if (step === 0) {
             loadStep(1); 
@@ -429,6 +523,7 @@
     typingEl.innerHTML = `
       <div class="avatar">查</div>
       <div class="typing-bubble">
+        <span class="typing-text">正在搜索</span>
         <div class="dot"></div><div class="dot"></div><div class="dot"></div>
       </div>`;
     chatArea.appendChild(typingEl);
